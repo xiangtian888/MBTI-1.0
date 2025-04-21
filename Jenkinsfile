@@ -5,6 +5,7 @@ pipeline {
         DEPLOY_HOST = '43.138.144.68'
         DEPLOY_USER = 'ubuntu'
         DEPLOY_DIR = '/home/ubuntu/mbti'
+        DEPLOY_PASS = 'e2/ZUCBLt]p3k(}q'
     }
 
     stages {
@@ -27,9 +28,6 @@ pipeline {
         }
         
         stage('部署') {
-            environment {
-                DEPLOY_PASS = 'e2/ZUCBLt]p3k(}q'
-            }
             steps {
                 sh '''
                     # 安装 sshpass
@@ -48,8 +46,7 @@ pipeline {
                     sshpass -p "${DEPLOY_PASS}" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "cd ${DEPLOY_DIR} && \
                         tar -xzf dist.tar.gz && \
                         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
-                        export NVM_DIR=\\\$HOME/.nvm && \
-                        [ -s \\\$NVM_DIR/nvm.sh ] && \\\. \\\$NVM_DIR/nvm.sh && \
+                        source ~/.nvm/nvm.sh && \
                         nvm install 18 && \
                         npm install -g pm2 && \
                         npm install --production && \
