@@ -6,9 +6,21 @@ pipeline {
         DEPLOY_USER = 'ubuntu'
         DEPLOY_DIR = '/home/ubuntu/mbti'
         DEPLOY_PASS = 'e2/ZUCBLt]p3k(}q'
+        NODE_VERSION = '18'
     }
 
     stages {
+        stage('设置 Node.js') {
+            steps {
+                sh '''
+                    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
+                    apt-get install -y nodejs
+                    node -v
+                    npm -v
+                '''
+            }
+        }
+
         stage('检出代码') {
             steps {
                 checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/xiangtian888/MBTI-1.0.git']]])
@@ -17,7 +29,10 @@ pipeline {
         
         stage('安装依赖') {
             steps {
-                sh 'npm install'
+                sh '''
+                    npm cache clean --force
+                    npm install
+                '''
             }
         }
 
