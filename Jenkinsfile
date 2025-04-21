@@ -6,36 +6,30 @@ pipeline {
         DEPLOY_USER = 'ubuntu'
         DEPLOY_DIR = '/home/ubuntu/mbti'
         DEPLOY_PASS = 'e2/ZUCBLt]p3k(}q'
-        NODE_VERSION = '18'
+        NODE_VERSION = '18.20.0'
     }
 
     stages {
         stage('设置 Node.js') {
             steps {
                 sh '''
-                    # 添加 NodeSource 仓库
-                    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+                    # 下载 Node.js 二进制包
+                    cd /tmp
+                    wget https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz
                     
-                    # 安装 Node.js 和 npm
-                    sudo apt-get update
-                    sudo apt-get install -y nodejs
+                    # 解压到 /usr/local
+                    sudo tar -C /usr/local --strip-components 1 -xzf node-v${NODE_VERSION}-linux-x64.tar.gz
+                    
+                    # 清理下载文件
+                    rm node-v${NODE_VERSION}-linux-x64.tar.gz
                     
                     # 验证安装
                     node -v
                     npm -v
                     
-                    # 清理 npm 缓存
+                    # 配置 npm
+                    npm config set registry https://registry.npmmirror.com
                     npm cache clean -f
-                    
-                    # 安装 n 模块
-                    npm install -g n
-                    
-                    # 安装并使用 Node.js 18
-                    n 18
-                    
-                    # 再次验证版本
-                    node -v
-                    npm -v
                 '''
             }
         }
