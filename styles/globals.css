@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.form-radio {
+  @apply text-blue-600;
+}
+
+.form-radio:focus {
+  @apply ring-2 ring-blue-500 ring-offset-2;
+}
+
+.step {
+  transition: all 0.3s ease;
+}
+
+/* Likert量表样式 */
+.likert-scale {
+  @apply relative flex items-center justify-between;
+}
+
+.likert-scale::before {
+  content: '';
+  @apply absolute left-0 right-0 h-0.5 bg-gray-200 top-1/2 -translate-y-1/2 z-0;
+}
+
+/* 选项悬停效果 */
+.likert-option {
+  @apply relative z-10 transition-transform duration-200 ease-in-out;
+}
+
+.likert-option:hover {
+  @apply transform scale-110;
+}
+
+/* 选中状态动画 */
+@keyframes selectPulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.likert-selected {
+  animation: selectPulse 0.3s ease-in-out;
+} 
