@@ -1,104 +1,61 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18-alpine'
-            args '-p 3000:3000'
-        }
-    }
+    agent any
 
     environment {
-        NODE_VERSION = '18'
-        NPM_CONFIG_CACHE = '/tmp/npm-cache'
-        TENCENT_CLOUD_IP = '43.138.144.68'
+        DEPLOY_HOST = '43.138.144.68'
         DEPLOY_USER = 'ubuntu'
+        DEPLOY_DIR = '/home/ubuntu/mbti'
     }
 
     stages {
-        stage('环境检查') {
-            steps {
-                sh '''
-                    echo "检查 Node.js 版本..."
-                    node -v
-                    echo "检查 npm 版本..."
-                    npm -v
-                '''
-            }
-        }
-
         stage('检出代码') {
             steps {
                 checkout([$class: 'GitSCM', branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/xiangtian888/MBTI-1.0.git']]])
             }
         }
         
-        stage('清理和安装依赖') {
+        stage('安装依赖') {
             steps {
-                sh '''
-                    echo "清理 npm 缓存..."
-                    npm cache clean --force
-                    
-                    echo "安装依赖..."
-                    npm install
-                    
-                    echo "检查依赖版本..."
-                    npm list
-                '''
+                sh 'npm install'
             }
         }
 
-        stage('代码质量检查') {
-            steps {
-                sh '''
-                    echo "安装代码检查工具..."
-                    npm install --save-dev eslint prettier
-                    
-                    echo "运行代码格式检查..."
-                    if [ -f ".eslintrc.js" ]; then
-                        npx eslint . || true
-                    else
-                        echo "未找到 ESLint 配置文件，跳过 ESLint 检查"
-                    fi
-                '''
-            }
-        }
-        
         stage('构建') {
             steps {
-                sh '''
-                    echo "开始构建..."
-                    npm run build
-                '''
+                sh 'npm run build'
             }
         }
         
-        stage('部署到腾讯云') {
+        stage('部署') {
+            environment {
+                DEPLOY_PASS = 'e2/ZUCBLt]p3k(}q'
+            }
             steps {
-                withCredentials([usernamePassword(credentialsId: 'tencent-cloud-credentials', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    sh '''
-                        echo "安装 sshpass..."
-                        apt-get update && apt-get install -y sshpass
-                        
-                        echo "创建部署目录..."
-                        sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${TENCENT_CLOUD_IP} "mkdir -p /home/ubuntu/mbti"
-                        
-                        echo "打包应用文件..."
-                        tar -czf dist.tar.gz .next node_modules package.json package-lock.json
-                        
-                        echo "部署到腾讯云服务器..."
-                        sshpass -p "$PASSWORD" scp -o StrictHostKeyChecking=no dist.tar.gz ${DEPLOY_USER}@${TENCENT_CLOUD_IP}:/home/ubuntu/mbti
-                        
-                        echo "在远程服务器上部署应用..."
-                        sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${TENCENT_CLOUD_IP} "cd /home/ubuntu/mbti && \
-                            tar -xzf dist.tar.gz && \
-                            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
-                            export NVM_DIR=\$HOME/.nvm && \
-                            [ -s \$NVM_DIR/nvm.sh ] && \. \$NVM_DIR/nvm.sh && \
-                            nvm install 18 && \
-                            npm install -g pm2 && \
-                            npm install --production && \
-                            pm2 restart mbti || pm2 start npm --name 'mbti' -- start"
-                    '''
-                }
+                sh '''
+                    # 安装 sshpass
+                    apt-get update && apt-get install -y sshpass
+                    
+                    # 创建部署目录
+                    sshpass -p "${DEPLOY_PASS}" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "mkdir -p ${DEPLOY_DIR}"
+                    
+                    # 打包应用文件
+                    tar -czf dist.tar.gz .next node_modules package.json package-lock.json
+                    
+                    # 上传到服务器
+                    sshpass -p "${DEPLOY_PASS}" scp -o StrictHostKeyChecking=no dist.tar.gz ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_DIR}
+                    
+                    # 在服务器上安装必要的软件和部署应用
+                    sshpass -p "${DEPLOY_PASS}" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "cd ${DEPLOY_DIR} && \
+                        tar -xzf dist.tar.gz && \
+                        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
+                        export NVM_DIR=\\\$HOME/.nvm && \
+                        [ -s \\\$NVM_DIR/nvm.sh ] && \\\. \\\$NVM_DIR/nvm.sh && \
+                        nvm install 18 && \
+                        npm install -g pm2 && \
+                        npm install --production && \
+                        pm2 delete mbti || true && \
+                        pm2 start npm --name mbti -- start"
+                '''
             }
         }
     }
