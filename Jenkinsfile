@@ -13,8 +13,18 @@ pipeline {
         stage('设置 Node.js') {
             steps {
                 sh '''
-                    curl -fsSL https://deb.nodesource.com/setup_18.x | bash -
-                    apt-get install -y nodejs
+                    # 安装 nvm
+                    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+                    
+                    # 加载 nvm
+                    export NVM_DIR="$HOME/.nvm"
+                    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+                    
+                    # 安装并使用 Node.js
+                    nvm install ${NODE_VERSION}
+                    nvm use ${NODE_VERSION}
+                    
+                    # 验证版本
                     node -v
                     npm -v
                 '''
