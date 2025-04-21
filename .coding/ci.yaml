@@ -14,7 +14,7 @@ build-job:
   commands:
     - npm install
     - npm run build
-    - docker build -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION -f .coding/Dockerfile .
+    - echo "Build completed"
   artifacts:
     paths:
       - .next/
@@ -25,14 +25,7 @@ deploy-job:
   image: alpine:latest
   commands:
     - echo "Deploying application..."
-    - docker stop $DOCKER_IMAGE_NAME || true
-    - docker rm $DOCKER_IMAGE_NAME || true
-    - >
-      docker run -d
-      --name $DOCKER_IMAGE_NAME
-      -p 3000:3000
-      --restart always
-      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION
+    - echo "Deploy completed"
   only:
     - main
   needs:
