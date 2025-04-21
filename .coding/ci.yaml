@@ -1,0 +1,39 @@
+version: 2.0
+
+stages:
+  - build
+  - deploy
+
+variables:
+  DOCKER_IMAGE_NAME: mbti-career
+  DOCKER_IMAGE_VERSION: latest
+
+build-job:
+  stage: build
+  image: node:18-alpine
+  commands:
+    - npm install
+    - npm run build
+    - docker build -t $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION -f .coding/Dockerfile .
+  artifacts:
+    paths:
+      - .next/
+      - node_modules/
+
+deploy-job:
+  stage: deploy
+  image: alpine:latest
+  commands:
+    - echo "Deploying application..."
+    - docker stop $DOCKER_IMAGE_NAME || true
+    - docker rm $DOCKER_IMAGE_NAME || true
+    - >
+      docker run -d
+      --name $DOCKER_IMAGE_NAME
+      -p 3000:3000
+      --restart always
+      $DOCKER_IMAGE_NAME:$DOCKER_IMAGE_VERSION
+  only:
+    - main
+  needs:
+    - build-job 
