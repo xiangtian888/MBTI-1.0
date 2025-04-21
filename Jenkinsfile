@@ -6,7 +6,7 @@ pipeline {
         DEPLOY_USER = 'ubuntu'
         DEPLOY_DIR = '/home/ubuntu/mbti'
         DEPLOY_PASS = 'e2/ZUCBLt]p3k(}q'
-        NODE_VERSION = '18.20.0'
+        NODE_VERSION = '16.20.2'
     }
 
     stages {
@@ -75,7 +75,7 @@ pipeline {
                         tar -xzf dist.tar.gz && \
                         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
                         source ~/.nvm/nvm.sh && \
-                        nvm install 18 && \
+                        nvm install 16 && \
                         npm install -g pm2 && \
                         npm install --production && \
                         pm2 delete mbti || true && \
@@ -93,4 +93,4 @@ pipeline {
             echo '部署失败，请检查日志'
         }
     }
-} 
+}
