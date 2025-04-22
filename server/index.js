@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 
 // 启用更详细的日志
@@ -27,6 +28,10 @@ app.use(cors({
 app.options('*', cors());
 
 app.use(express.json());
+
+// 静态文件服务
+app.use(express.static(path.join(__dirname, '../.next')));
+app.use(express.static(path.join(__dirname, '../public')));
 
 // MongoDB Atlas连接配置
 const MONGODB_URI = 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/mbti_db?retryWrites=true&w=majority&appName=Cluster0';
@@ -182,13 +187,9 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 处理未找到的路由
-app.use((req, res) => {
-  console.log('404 - 未找到路由:', req.method, req.url);
-  res.status(404).json({
-    success: false,
-    error: '未找到请求的资源'
-  });
+// 处理所有其他路由 - 返回前端页面
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../.next/server/pages/index.html'));
 });
 
 const PORT = process.env.PORT || 3000;
