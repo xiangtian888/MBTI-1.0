@@ -3,12 +3,29 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const app = express();
 
+// 启用更详细的日志
+const logRequests = (req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  console.log('Headers:', req.headers);
+  if (req.body && Object.keys(req.body).length) {
+    console.log('Body:', req.body);
+  }
+  next();
+};
+
+app.use(logRequests);
+
 // 中间件配置
 app.use(cors({
-  origin: '*', // 允许所有来源访问
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 }));
+
+// 处理预检请求
+app.options('*', cors());
+
 app.use(express.json());
 
 // MongoDB Atlas连接配置
@@ -56,13 +73,18 @@ const TestResult = mongoose.model('TestResult', {
 
 // 根路由
 app.get('/', (req, res) => {
-  res.json({ message: '服务器运行正常' });
+  res.json({ 
+    message: '服务器运行正常',
+    time: new Date().toISOString(),
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+  });
 });
 
 // API路由
 // 保存测试结果
 app.post('/api/results', async (req, res) => {
   try {
+    console.log('接收到保存请求:', new Date().toISOString());
     console.log('接收到的数据:', req.body);
     
     // 验证必填字段
@@ -70,6 +92,7 @@ app.post('/api/results', async (req, res) => {
     const missingFields = requiredFields.filter(field => !req.body[field]);
     
     if (missingFields.length > 0) {
+      console.log('缺少必填字段:', missingFields);
       return res.status(400).json({
         success: false,
         error: `缺少必填字段: ${missingFields.join(', ')}`
@@ -93,7 +116,9 @@ app.post('/api/results', async (req, res) => {
 // 获取所有测试结果
 app.get('/api/results', async (req, res) => {
   try {
+    console.log('接收到获取请求:', new Date().toISOString());
     const results = await TestResult.find().sort({ timestamp: -1 });
+    console.log(`找到 ${results.length} 条结果`);
     res.json({ success: true, data: results });
   } catch (error) {
     console.error('获取数据失败:', error);
@@ -104,6 +129,9 @@ app.get('/api/results', async (req, res) => {
 // 按条件筛选测试结果
 app.post('/api/results/filter', async (req, res) => {
   try {
+    console.log('接收到筛选请求:', new Date().toISOString());
+    console.log('筛选条件:', req.body);
+    
     const { startDate, endDate, mbtiType, zodiacSign } = req.body;
     let query = {};
     
@@ -121,6 +149,7 @@ app.post('/api/results/filter', async (req, res) => {
     }
     
     const results = await TestResult.find(query).sort({ timestamp: -1 });
+    console.log(`筛选到 ${results.length} 条结果`);
     res.json({ success: true, data: results });
   } catch (error) {
     console.error('筛选数据失败:', error);
@@ -131,12 +160,16 @@ app.post('/api/results/filter', async (req, res) => {
 // 健康检查端点
 app.get('/health', (req, res) => {
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  res.json({
+  const healthInfo = {
     status: 'ok',
-    timestamp: new Date(),
+    timestamp: new Date().toISOString(),
     mongodb: dbStatus,
-    uptime: process.uptime()
-  });
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+    node: process.version
+  };
+  console.log('健康检查:', healthInfo);
+  res.json(healthInfo);
 });
 
 // 错误处理中间件
@@ -151,6 +184,7 @@ app.use((err, req, res, next) => {
 
 // 处理未找到的路由
 app.use((req, res) => {
+  console.log('404 - 未找到路由:', req.method, req.url);
   res.status(404).json({
     success: false,
     error: '未找到请求的资源'
@@ -159,5 +193,10 @@ app.use((req, res) => {
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`服务器启动时间: ${new Date().toISOString()}`);
   console.log(`服务器运行在 http://0.0.0.0:${PORT}`);
+  console.log('环境变量:', {
+    NODE_ENV: process.env.NODE_ENV,
+    PORT: process.env.PORT
+  });
 }); 
