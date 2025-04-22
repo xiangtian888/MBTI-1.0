@@ -12,23 +12,17 @@ pipeline {
         stage('Deploy') {
             steps {
                 sh '''
-                    # 更新包管理器
-                    apt-get update
-                    
-                    # 安装必要工具
-                    apt-get install -y sshpass
-                    
                     # 创建远程目录
-                    sshpass -p 'e2/ZUCBLt]p3k{}q' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${REMOTE_DIR}"
+                    ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${REMOTE_DIR}"
                     
                     # 打包项目文件
                     tar -czf dist.tar.gz .next node_modules package.json package-lock.json
                     
                     # 上传文件到服务器
-                    sshpass -p 'e2/ZUCBLt]p3k{}q' scp -o StrictHostKeyChecking=no dist.tar.gz ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}
+                    scp -o StrictHostKeyChecking=no dist.tar.gz ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}
                     
                     # 在远程服务器上执行部署命令
-                    sshpass -p 'e2/ZUCBLt]p3k{}q' ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_DIR} && \
+                    ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "cd ${REMOTE_DIR} && \
                         # 解压文件
                         tar -xzf dist.tar.gz && \
                         # 下载并安装 Node.js
