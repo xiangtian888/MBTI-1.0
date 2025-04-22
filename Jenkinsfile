@@ -75,7 +75,19 @@ pipeline {
                     "
                     
                     echo "创建部署目录..."
-                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${DEPLOY_PATH}"
+                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "
+                        mkdir -p ${DEPLOY_PATH}
+                        
+                        # 检查并停止已运行的服务
+                        echo '检查并停止已运行的服务...'
+                        pm2 stop mbti 2>/dev/null || true
+                        pm2 delete mbti 2>/dev/null || true
+                        
+                        # 检查端口占用
+                        echo '检查端口占用...'
+                        sudo lsof -i :3000 || true
+                        sudo kill -9 \$(sudo lsof -t -i:3000) 2>/dev/null || true
+                    "
                 '''
             }
         }
@@ -87,7 +99,7 @@ pipeline {
                     FILES_TO_PACK=""
                     
                     # 检查每个文件/目录是否存在
-                    for item in .next node_modules package.json package-lock.json public components pages styles app lib config; do
+                    for item in .next node_modules package.json package-lock.json public components pages styles app lib config server utils; do
                         if [ -e "$item" ]; then
                             FILES_TO_PACK="$FILES_TO_PACK $item"
                             echo "找到文件/目录: $item"
@@ -117,15 +129,61 @@ pipeline {
                     sshpass -p "${REMOTE_PASS}" scp -o StrictHostKeyChecking=no deploy.tar.gz ${REMOTE_USER}@${REMOTE_HOST}:${DEPLOY_PATH}/
                     
                     echo "解压和安装..."
-                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "cd ${DEPLOY_PATH} && \
+                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "
+                        cd ${DEPLOY_PATH} && \
                         tar xzf deploy.tar.gz && \
                         rm deploy.tar.gz && \
                         export PATH=\$PATH:/usr/local/bin && \
                         npm install && \
-                        pm2 restart mbti || pm2 start npm --name mbti -- start"
+                        cd server && npm install && cd .. && \
+                        
+                        # 启动服务器
+                        echo '启动服务器...' && \
+                        PORT=3000 pm2 start server/index.js --name mbti && \
+                        
+                        # 等待服务器启动
+                        echo '等待服务器启动...' && \
+                        sleep 5 && \
+                        
+                        # 检查服务器状态
+                        echo '检查服务器状态...' && \
+                        curl -s http://localhost:3000/health || echo '服务器未响应' && \
+                        
+                        # 显示PM2状态
+                        echo '显示PM2状态:' && \
+                        pm2 status && \
+                        
+                        # 显示日志
+                        echo '显示服务器日志:' && \
+                        pm2 logs mbti --lines 20
+                    "
                     
                     echo "清理本地部署包..."
                     rm deploy.tar.gz
+                '''
+            }
+        }
+
+        stage('验证部署') {
+            steps {
+                sh '''
+                    echo "验证服务器状态..."
+                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "
+                        echo '检查服务器响应...'
+                        curl -s http://localhost:3000/health
+                        
+                        echo '\\n检查MongoDB连接...'
+                        curl -s http://localhost:3000/
+                        
+                        echo '\\n检查端口监听状态...'
+                        sudo netstat -tlpn | grep :3000
+                        
+                        echo '\\n检查防火墙规则...'
+                        sudo ufw status | grep 3000 || echo '端口 3000 未在防火墙中开放'
+                        
+                        echo '\\n检查服务日志...'
+                        pm2 logs mbti --lines 10
+                    "
                 '''
             }
         }
