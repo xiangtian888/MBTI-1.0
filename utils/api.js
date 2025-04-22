@@ -1,7 +1,8 @@
-const API_BASE_URL = 'http://43.138.144.68:3001/api';
+const API_BASE_URL = 'http://43.138.144.68:3000/api';
 
 export const saveTestResult = async (resultData) => {
   try {
+    console.log('发送数据:', resultData);
     const response = await fetch(`${API_BASE_URL}/results`, {
       method: 'POST',
       headers: {
@@ -9,6 +10,12 @@ export const saveTestResult = async (resultData) => {
       },
       body: JSON.stringify(resultData),
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || '保存失败');
+    }
+    
     return await response.json();
   } catch (error) {
     console.error('保存测试结果失败:', error);
@@ -19,6 +26,10 @@ export const saveTestResult = async (resultData) => {
 export const getAllResults = async () => {
   try {
     const response = await fetch(`${API_BASE_URL}/results`);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || '获取数据失败');
+    }
     return await response.json();
   } catch (error) {
     console.error('获取测试结果失败:', error);
@@ -35,6 +46,12 @@ export const filterResults = async (filters) => {
       },
       body: JSON.stringify(filters),
     });
+    
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || '筛选失败');
+    }
+    
     return await response.json();
   } catch (error) {
     console.error('筛选测试结果失败:', error);

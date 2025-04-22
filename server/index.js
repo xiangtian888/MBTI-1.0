@@ -4,18 +4,22 @@ const cors = require('cors');
 const app = express();
 
 // 中间件配置
-app.use(cors());
+app.use(cors({
+  origin: '*', // 允许所有来源访问
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 // MongoDB Atlas连接配置
-const MONGODB_URI = 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
+const MONGODB_URI = 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/mbti_db?retryWrites=true&w=majority&appName=Cluster0';
 
 // 连接MongoDB
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000, // 超时时间设置为5秒
-  socketTimeoutMS: 45000, // Socket超时时间
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 45000,
 }).then(() => {
   console.log('MongoDB Atlas连接成功');
 }).catch((err) => {
@@ -48,6 +52,11 @@ const TestResult = mongoose.model('TestResult', {
     jobs: [String],
     desc: String
   }
+});
+
+// 根路由
+app.get('/', (req, res) => {
+  res.json({ message: '服务器运行正常' });
 });
 
 // API路由
@@ -125,7 +134,8 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date(),
-    mongodb: dbStatus
+    mongodb: dbStatus,
+    uptime: process.uptime()
   });
 });
 
@@ -139,7 +149,15 @@ app.use((err, req, res, next) => {
   });
 });
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`服务器运行在端口 ${PORT}`);
+// 处理未找到的路由
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: '未找到请求的资源'
+  });
+});
+
+const PORT = process.env.PORT || 3000;
+const server = app.listen(PORT, '0.0.0.0', () => {
+  console.log(`服务器运行在 http://0.0.0.0:${PORT}`);
 }); 
