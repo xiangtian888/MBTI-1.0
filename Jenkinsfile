@@ -43,18 +43,37 @@ pipeline {
             }
         }
 
-        stage('测试连接') {
+        stage('准备服务器环境') {
             steps {
                 sh '''
-                    echo "SSH连接测试..."
-                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "echo '连接成功'"
-                '''
-            }
-        }
-
-        stage('准备部署') {
-            steps {
-                sh '''
+                    echo "安装Node.js和PM2..."
+                    sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "
+                        # 检查Node.js是否已安装
+                        if ! command -v node &> /dev/null; then
+                            echo '安装Node.js...'
+                            curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash -
+                            sudo apt-get install -y nodejs
+                        fi
+                        
+                        # 检查npm是否已安装
+                        if ! command -v npm &> /dev/null; then
+                            echo '安装npm...'
+                            sudo apt-get install -y npm
+                        fi
+                        
+                        # 检查PM2是否已安装
+                        if ! command -v pm2 &> /dev/null; then
+                            echo '安装PM2...'
+                            sudo npm install -g pm2
+                        fi
+                        
+                        # 显示版本信息
+                        echo '环境信息:'
+                        node -v
+                        npm -v
+                        pm2 -v
+                    "
+                    
                     echo "创建部署目录..."
                     sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "mkdir -p ${DEPLOY_PATH}"
                 '''
@@ -101,6 +120,7 @@ pipeline {
                     sshpass -p "${REMOTE_PASS}" ssh -o StrictHostKeyChecking=no ${REMOTE_USER}@${REMOTE_HOST} "cd ${DEPLOY_PATH} && \
                         tar xzf deploy.tar.gz && \
                         rm deploy.tar.gz && \
+                        export PATH=\$PATH:/usr/local/bin && \
                         npm install && \
                         pm2 restart mbti || pm2 start npm --name mbti -- start"
                     
