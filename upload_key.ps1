@@ -1,5 +1,5 @@
 # 设置变量
-$password = "e2/ZUCBLt]p3k{}q"
+$password = "e2/ZUCBLt]p3k(}q"
 $remoteUser = "ubuntu"
 $remoteHost = "43.138.144.68"
 $server = "${remoteUser}@${remoteHost}"
