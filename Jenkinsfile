@@ -10,7 +10,7 @@ pipeline {
     stages {
         stage('部署到服务器') {
             steps {
-                withCredentials([string(credentialsId: 'ubuntu-password', variable: 'SSHPASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'ubuntu-password', usernameVariable: 'USERNAME', passwordVariable: 'SSHPASS')]) {
                     sh '''
                         # 创建部署目录
                         sshpass -e ssh -o StrictHostKeyChecking=no ${REMOTE_HOST} "mkdir -p ${DEPLOY_PATH}"
