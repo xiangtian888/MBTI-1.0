@@ -1,9 +1,12 @@
 import { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
+import { getAllResults, filterResults } from '../utils/api';
 
 export default function Admin() {
   const [testResults, setTestResults] = useState([]);
   const [filteredResults, setFilteredResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
@@ -23,50 +26,43 @@ export default function Admin() {
   ];
 
   useEffect(() => {
-    // 从 localStorage 获取测试结果，并添加时间戳
-    const results = JSON.parse(localStorage.getItem('mbtiResults') || '[]')
-      .map(result => ({
-        ...result,
-        timestamp: result.timestamp || new Date().toISOString() // 为旧数据添加默认时间戳
-      }));
-    setTestResults(results);
-    setFilteredResults(results);
+    fetchResults();
   }, []);
 
+  const fetchResults = async () => {
+    try {
+      setLoading(true);
+      const response = await getAllResults();
+      if (response.success) {
+        setTestResults(response.data);
+        setFilteredResults(response.data);
+      } else {
+        setError('获取数据失败');
+      }
+    } catch (error) {
+      setError('获取数据失败: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // 处理筛选条件变化
-  const handleFilterChange = (e) => {
+  const handleFilterChange = async (e) => {
     const { name, value } = e.target;
     const newFilters = { ...filters, [name]: value };
     setFilters(newFilters);
     
-    // 应用筛选
-    let filtered = [...testResults];
-    
-    if (newFilters.startDate) {
-      filtered = filtered.filter(result => 
-        new Date(result.timestamp) >= new Date(newFilters.startDate)
-      );
+    try {
+      setLoading(true);
+      const response = await filterResults(newFilters);
+      if (response.success) {
+        setFilteredResults(response.data);
+      }
+    } catch (error) {
+      setError('筛选数据失败: ' + error.message);
+    } finally {
+      setLoading(false);
     }
-    
-    if (newFilters.endDate) {
-      filtered = filtered.filter(result => 
-        new Date(result.timestamp) <= new Date(newFilters.endDate)
-      );
-    }
-    
-    if (newFilters.mbtiType) {
-      filtered = filtered.filter(result => 
-        result.mbtiType === newFilters.mbtiType
-      );
-    }
-    
-    if (newFilters.zodiacSign) {
-      filtered = filtered.filter(result => 
-        result.zodiacSign === newFilters.zodiacSign
-      );
-    }
-    
-    setFilteredResults(filtered);
   };
 
   // 格式化日期显示
@@ -82,7 +78,6 @@ export default function Admin() {
 
   // 导出Excel功能
   const exportToExcel = () => {
-    // 准备数据
     const exportData = filteredResults.map(result => ({
       '测试时间': formatDate(result.timestamp),
       '姓名': result.name,
@@ -94,29 +89,34 @@ export default function Admin() {
       '岗位说明': result.recommendation?.desc || ''
     }));
 
-    // 创建工作簿
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.json_to_sheet(exportData);
 
-    // 设置列宽
     const colWidths = [
-      { wch: 20 },  // 测试时间
-      { wch: 10 },  // 姓名
-      { wch: 6 },   // 性别
-      { wch: 15 },  // 手机号码
-      { wch: 10 },  // MBTI类型
-      { wch: 10 },  // 星座
-      { wch: 30 },  // 推荐岗位
-      { wch: 50 }   // 岗位说明
+      { wch: 20 }, { wch: 10 }, { wch: 6 }, { wch: 15 },
+      { wch: 10 }, { wch: 10 }, { wch: 30 }, { wch: 50 }
     ];
     ws['!cols'] = colWidths;
 
-    // 添加工作表到工作簿
     XLSX.utils.book_append_sheet(wb, ws, 'MBTI测试结果');
-
-    // 导出文件
     XLSX.writeFile(wb, `MBTI测试结果_${new Date().toLocaleDateString()}.xlsx`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl text-gray-600">加载中...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-xl text-red-600">{error}</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">

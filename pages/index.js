@@ -6,6 +6,7 @@ import { getZodiac } from '../utils/zodiac';
 import { jobRecommendation } from '../data/job_recommendation';
 import { mbtiQuestions } from '../data/mbti_questions';
 import { StepIndicator } from '../components/StepIndicator';
+import { saveTestResult } from '../utils/api';
 
 // 自定义提示框组件
 const AlertDialog = ({ message, onClose }) => {
@@ -58,8 +59,7 @@ export default function Home() {
     setShowAlert(true);
   };
 
-  const handleSubmit = (e) => {
-    // 阻止默认的表单提交行为
+  const handleSubmit = async (e) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -72,7 +72,6 @@ export default function Home() {
       }
       setStep(2);
     } else if (step === 2) {
-      // 检查是否有未完成的题目
       const unansweredQuestions = mbtiQuestions.filter(q => 
         mbtiAnswers[q.id] === undefined || mbtiAnswers[q.id] === null
       );
@@ -108,12 +107,13 @@ export default function Home() {
         }
       };
 
-      // 保存结果到 localStorage
-      const existingResults = JSON.parse(localStorage.getItem('mbtiResults') || '[]');
-      localStorage.setItem('mbtiResults', JSON.stringify([...existingResults, resultData]));
-      
-      setResult(resultData);
-      setStep(3);
+      try {
+        await saveTestResult(resultData);
+        setResult(resultData);
+        setStep(3);
+      } catch (error) {
+        showAlertMessage('保存测试结果失败，请稍后重试');
+      }
     }
   };
 

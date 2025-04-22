@@ -70,14 +70,19 @@ pipeline {
                     # 上传到服务器
                     sshpass -p "${DEPLOY_PASS}" scp -o StrictHostKeyChecking=no dist.tar.gz ${DEPLOY_USER}@${DEPLOY_HOST}:${DEPLOY_DIR}
                     
-                    # 在服务器上安装必要的软件和部署应用
+                    # 在服务器上部署应用
                     sshpass -p "${DEPLOY_PASS}" ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} "cd ${DEPLOY_DIR} && \
                         tar -xzf dist.tar.gz && \
-                        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash && \
-                        source ~/.nvm/nvm.sh && \
-                        nvm install 16 && \
-                        npm install -g pm2 && \
-                        npm install --production && \
+                        # 下载并安装 Node.js
+                        wget https://nodejs.org/download/release/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-x64.tar.gz && \
+                        sudo mkdir -p /usr/local/lib/nodejs && \
+                        sudo tar -xzf node-v${NODE_VERSION}-linux-x64.tar.gz -C /usr/local/lib/nodejs && \
+                        # 设置环境变量
+                        echo 'export PATH=/usr/local/lib/nodejs/node-v${NODE_VERSION}-linux-x64/bin:\$PATH' >> ~/.profile && \
+                        source ~/.profile && \
+                        # 安装和配置 pm2
+                        sudo npm install -g pm2 --registry=https://registry.npmmirror.com && \
+                        # 启动应用
                         pm2 delete mbti || true && \
                         pm2 start npm --name mbti -- start"
                 '''
