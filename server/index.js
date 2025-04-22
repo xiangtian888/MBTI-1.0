@@ -7,17 +7,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// MongoDB连接配置
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mbti_db';
+// MongoDB Atlas连接配置
+const MONGODB_URI = 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0';
 
 // 连接MongoDB
 mongoose.connect(MONGODB_URI, {
   useNewUrlParser: true,
-  useUnifiedTopology: true
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 5000, // 超时时间设置为5秒
+  socketTimeoutMS: 45000, // Socket超时时间
 }).then(() => {
-  console.log('MongoDB连接成功');
+  console.log('MongoDB Atlas连接成功');
 }).catch((err) => {
-  console.error('MongoDB连接失败:', err);
+  console.error('MongoDB Atlas连接失败:', err);
 });
 
 // 监听MongoDB连接事件
@@ -29,6 +31,10 @@ mongoose.connection.on('disconnected', () => {
   console.log('MongoDB连接断开');
 });
 
+mongoose.connection.on('connected', () => {
+  console.log('MongoDB重新连接成功');
+});
+
 // 定义测试结果模型
 const TestResult = mongoose.model('TestResult', {
   name: String,
@@ -37,7 +43,7 @@ const TestResult = mongoose.model('TestResult', {
   birth: String,
   mbtiType: String,
   zodiacSign: String,
-  timestamp: Date,
+  timestamp: { type: Date, default: Date.now },
   recommendation: {
     jobs: [String],
     desc: String
@@ -49,13 +55,29 @@ const TestResult = mongoose.model('TestResult', {
 app.post('/api/results', async (req, res) => {
   try {
     console.log('接收到的数据:', req.body);
+    
+    // 验证必填字段
+    const requiredFields = ['name', 'gender', 'phone', 'birth', 'mbtiType', 'zodiacSign'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        error: `缺少必填字段: ${missingFields.join(', ')}`
+      });
+    }
+
     const result = new TestResult(req.body);
     await result.save();
     console.log('保存成功:', result);
     res.status(201).json({ success: true, data: result });
   } catch (error) {
     console.error('保存失败:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      details: '数据保存失败，请检查数据格式是否正确'
+    });
   }
 });
 
@@ -95,6 +117,16 @@ app.post('/api/results/filter', async (req, res) => {
     console.error('筛选数据失败:', error);
     res.status(500).json({ success: false, error: error.message });
   }
+});
+
+// 健康检查端点
+app.get('/health', (req, res) => {
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  res.json({
+    status: 'ok',
+    timestamp: new Date(),
+    mongodb: dbStatus
+  });
 });
 
 // 错误处理中间件
