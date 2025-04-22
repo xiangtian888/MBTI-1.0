@@ -7,6 +7,7 @@ pipeline {
         DEPLOY_PATH = '/home/ubuntu/mbti'
         NODE_VERSION = '16.20.2'
         REMOTE_PASS = 'e2/ZUCBLt]p3k(}q'
+        GIT_REPO = 'https://github.com/xiangtian888/MBTI-1.0.git'
     }
 
     stages {
@@ -18,7 +19,25 @@ pipeline {
                 sh '''
                     echo "当前工作目录:"
                     pwd
-                    echo "目录内容:"
+                    echo "清理工作目录..."
+                    rm -rf *
+                '''
+            }
+        }
+
+        stage('克隆代码') {
+            steps {
+                sh '''
+                    echo "克隆Git仓库..."
+                    git clone ${GIT_REPO} .
+                    
+                    echo "安装依赖..."
+                    npm install
+                    
+                    echo "构建项目..."
+                    npm run build || true
+                    
+                    echo "当前目录内容:"
                     ls -la
                 '''
             }
@@ -45,9 +64,6 @@ pipeline {
         stage('打包文件') {
             steps {
                 sh '''
-                    echo "当前目录内容:"
-                    ls -la
-                    
                     echo "检查并打包文件..."
                     FILES_TO_PACK=""
                     
