@@ -6,13 +6,14 @@ pipeline {
         REMOTE_HOST = '43.138.144.68'
         DEPLOY_PATH = '/home/ubuntu/mbti'
         NODE_VERSION = '16.20.2'
+        CRED_ID = 'ubuntu-password'
     }
 
     stages {
         stage('检查环境') {
             steps {
                 echo "开始部署流程..."
-                echo "使用的凭证ID: ubuntu-password"
+                echo "使用的凭证ID: ${CRED_ID}"
                 echo "部署目标服务器: ${REMOTE_USER}@${REMOTE_HOST}"
                 echo "部署目录: ${DEPLOY_PATH}"
             }
@@ -20,7 +21,7 @@ pipeline {
 
         stage('测试凭证') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'ubuntu-password', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: "${CRED_ID}", passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
                     sh '''
                         echo "凭证测试 - 用户名: $USERNAME"
                         echo "SSH连接测试..."
@@ -32,7 +33,7 @@ pipeline {
 
         stage('部署到服务器') {
             steps {
-                withCredentials([usernamePassword(credentialsId: 'ubuntu-password', passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
+                withCredentials([usernamePassword(credentialsId: "${CRED_ID}", passwordVariable: 'PASSWORD', usernameVariable: 'USERNAME')]) {
                     sh '''
                         echo "开始创建部署目录..."
                         # 创建部署目录
