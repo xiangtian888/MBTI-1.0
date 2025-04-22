@@ -30,4 +30,24 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts 
+next-env.d.ts
+
+# PowerShell临时文件
+*.tmp
+
+# IDE和编辑器文件
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Windows系统文件
+Thumbs.db
+Desktop.ini
+
+# Node模块（如果有的话）
+node_modules/
+
+# 环境变量文件（如果有的话）
+.env
+*.env 
