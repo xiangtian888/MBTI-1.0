@@ -48,9 +48,26 @@ pipeline {
                     echo "当前目录内容:"
                     ls -la
                     
-                    echo "创建部署包..."
-                    # 确保只打包必要的文件
-                    tar czf deploy.tar.gz .next node_modules package.json package-lock.json public components pages styles app lib config
+                    echo "检查并打包文件..."
+                    FILES_TO_PACK=""
+                    
+                    # 检查每个文件/目录是否存在
+                    for item in .next node_modules package.json package-lock.json public components pages styles app lib config; do
+                        if [ -e "$item" ]; then
+                            FILES_TO_PACK="$FILES_TO_PACK $item"
+                            echo "找到文件/目录: $item"
+                        else
+                            echo "警告: $item 不存在，将跳过"
+                        fi
+                    done
+                    
+                    if [ -z "$FILES_TO_PACK" ]; then
+                        echo "错误: 没有找到任何可打包的文件!"
+                        exit 1
+                    fi
+                    
+                    echo "开始打包文件: $FILES_TO_PACK"
+                    tar czf deploy.tar.gz $FILES_TO_PACK
                     
                     echo "检查部署包:"
                     ls -lh deploy.tar.gz
