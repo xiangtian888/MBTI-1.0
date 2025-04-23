@@ -86,15 +86,18 @@ pipeline {
                 sh '''
                     echo "开始构建前端项目..."
                     # 增加内存限制并设置生产环境
-                    export NODE_OPTIONS="--max-old-space-size=4096"
+                    export NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider"
                     export NODE_ENV=production
                     
-                    # 尝试使用不同的构建命令
-                    echo "尝试使用兼容Node.js的方式构建..."
-                    npm run build || {
-                        echo "常规构建失败，尝试降级构建..."
-                        npm install next@12.3.4 react@17.0.2 react-dom@17.0.2 --save --legacy-peer-deps || echo "降级依赖安装失败"
-                        npm run build || {
+                    # 先确保依赖版本兼容Node.js 16
+                    echo "安装兼容的依赖版本..."
+                    npm install next@12.3.4 react@17.0.2 react-dom@17.0.2 --save --legacy-peer-deps || echo "依赖安装未完全成功，继续尝试构建"
+                    
+                    # 尝试使用兼容Node.js的方式构建
+                    echo "使用兼容Node.js 16的方式构建..."
+                    NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider" npm run build || {
+                        echo "常规构建失败，尝试直接执行next build命令..."
+                        NODE_OPTIONS="--max-old-space-size=4096 --openssl-legacy-provider" ./node_modules/.bin/next build || {
                             echo "前端构建失败，查看错误日志:"
                             cat .next/build-error.log 2>/dev/null || echo "没有找到构建错误日志"
                             
