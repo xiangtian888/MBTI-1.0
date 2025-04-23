@@ -108,11 +108,23 @@ const TestResult = mongoose.model('TestResult', {
 
 // 根路由
 app.get('/', (req, res) => {
-  res.json({ 
-    message: '服务器运行正常',
-    time: new Date().toISOString(),
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
-  });
+  // 检查是否有查询参数，如果有可能是前端请求
+  if (Object.keys(req.query).length > 0) {
+    res.sendFile(path.join(__dirname, '../.next/server/pages/index.html'));
+  } else {
+    // 检查前端文件是否存在
+    const indexPath = path.join(__dirname, '../.next/server/pages/index.html');
+    if (require('fs').existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      // 如果前端文件不存在，返回API信息
+      res.json({ 
+        message: '服务器运行正常',
+        time: new Date().toISOString(),
+        mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
+      });
+    }
+  }
 });
 
 // API路由
