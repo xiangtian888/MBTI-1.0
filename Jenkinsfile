@@ -31,14 +31,64 @@ pipeline {
                     echo "克隆Git仓库..."
                     git clone ${GIT_REPO} .
                     
-                    echo "安装依赖..."
-                    npm install
-                    
-                    echo "构建项目..."
-                    npm run build || true
-                    
                     echo "当前目录内容:"
                     ls -la
+                '''
+            }
+        }
+        
+        stage('设置Node环境') {
+            steps {
+                sh '''
+                    echo "检查Node.js和npm版本..."
+                    node -v
+                    npm -v
+                    
+                    # 使用nvm安装指定版本的Node.js（如果可用）
+                    if command -v nvm &>/dev/null; then
+                        echo "使用nvm安装Node.js ${NODE_VERSION}..."
+                        nvm install ${NODE_VERSION}
+                        nvm use ${NODE_VERSION}
+                    elif command -v n &>/dev/null; then
+                        echo "使用n安装Node.js ${NODE_VERSION}..."
+                        n ${NODE_VERSION}
+                    else
+                        echo "未发现nvm或n，使用系统默认Node.js版本"
+                    fi
+                    
+                    # 设置npm缓存和超时
+                    echo "配置npm..."
+                    npm config set registry https://registry.npmjs.org/
+                    npm config set fetch-timeout 300000
+                '''
+            }
+        }
+        
+        stage('安装依赖') {
+            steps {
+                sh '''
+                    echo "安装项目依赖..."
+                    npm install --no-audit --no-fund
+                    
+                    echo "查看安装结果:"
+                    npm list --depth=0
+                '''
+            }
+        }
+        
+        stage('构建前端') {
+            steps {
+                sh '''
+                    echo "开始构建前端项目..."
+                    export NODE_OPTIONS="--max-old-space-size=4096"
+                    npm run build || {
+                        echo "前端构建失败，查看错误日志:"
+                        cat .next/build-error.log 2>/dev/null || echo "没有找到构建错误日志"
+                        echo "继续部署，但前端可能无法正常工作"
+                    }
+                    
+                    echo "检查构建结果:"
+                    ls -la .next 2>/dev/null || echo ".next目录不存在，构建可能失败"
                 '''
             }
         }
