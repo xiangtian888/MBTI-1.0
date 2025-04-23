@@ -36,29 +36,56 @@ app.use(express.static(path.join(__dirname, '../public')));
 // MongoDB Atlas连接配置
 const MONGODB_URI = 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/mbti_db?retryWrites=true&w=majority&appName=Cluster0';
 
-// 连接MongoDB
-mongoose.connect(MONGODB_URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 45000,
-}).then(() => {
-  console.log('MongoDB Atlas连接成功');
-}).catch((err) => {
-  console.error('MongoDB Atlas连接失败:', err);
-});
+// MongoDB连接重试逻辑
+const connectWithRetry = async (retryCount = 0) => {
+  const maxRetries = 5;
+  const options = {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    serverSelectionTimeoutMS: 30000, // 增加到30秒
+    socketTimeoutMS: 45000,
+    retryWrites: true,
+    w: 'majority',
+    connectTimeoutMS: 30000,
+  };
+
+  try {
+    console.log(`尝试连接MongoDB Atlas... (第${retryCount + 1}次尝试)`);
+    await mongoose.connect(MONGODB_URI, options);
+    console.log('MongoDB Atlas连接成功');
+  } catch (err) {
+    console.error('MongoDB Atlas连接失败:', err.message);
+    
+    if (retryCount < maxRetries) {
+      const nextRetryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);
+      console.log(`${nextRetryDelay/1000}秒后进行第${retryCount + 2}次重试...`);
+      setTimeout(() => connectWithRetry(retryCount + 1), nextRetryDelay);
+    } else {
+      console.error(`已达到最大重试次数(${maxRetries})，请检查网络设置和MongoDB Atlas配置`);
+    }
+  }
+};
+
+// 初始连接
+connectWithRetry();
 
 // 监听MongoDB连接事件
 mongoose.connection.on('error', (err) => {
-  console.error('MongoDB连接错误:', err);
+  console.error('MongoDB连接错误:', err.message);
+  if (mongoose.connection.readyState === 0) {
+    connectWithRetry();
+  }
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB连接断开');
+  console.log('MongoDB连接断开，尝试重新连接...');
+  if (mongoose.connection.readyState === 0) {
+    connectWithRetry();
+  }
 });
 
 mongoose.connection.on('connected', () => {
-  console.log('MongoDB重新连接成功');
+  console.log('MongoDB连接已建立');
 });
 
 // 定义测试结果模型
