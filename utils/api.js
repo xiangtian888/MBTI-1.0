@@ -3,6 +3,16 @@ const API_BASE_URL = process.env.NODE_ENV === 'production'
   ? 'http://43.138.144.68:3000/api'
   : 'http://localhost:3000/api';
 
+// 添加请求错误处理函数
+const handleFetchError = (error, operation) => {
+  console.error(`API ${operation} 失败:`, error);
+  if (error.response) {
+    console.error('响应状态:', error.response.status);
+    console.error('响应数据:', error.response.data);
+  }
+  throw error;
+};
+
 export const saveTestResult = async (resultData) => {
   try {
     console.log('发送数据:', resultData);
@@ -22,7 +32,7 @@ export const saveTestResult = async (resultData) => {
     
     return await response.json();
   } catch (error) {
-    console.error('保存测试结果失败:', error);
+    handleFetchError(error, '保存测试结果');
     throw error;
   }
 };
@@ -38,7 +48,7 @@ export const getAllResults = async () => {
     }
     return await response.json();
   } catch (error) {
-    console.error('获取测试结果失败:', error);
+    handleFetchError(error, '获取测试结果');
     throw error;
   }
 };
@@ -61,7 +71,7 @@ export const filterResults = async (filters) => {
     
     return await response.json();
   } catch (error) {
-    console.error('筛选测试结果失败:', error);
+    handleFetchError(error, '筛选测试结果');
     throw error;
   }
 }; 

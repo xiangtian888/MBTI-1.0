@@ -1,5 +1,6 @@
 # dependencies
 /node_modules
+/server/node_modules
 /.pnp
 .pnp.js
 
@@ -23,10 +24,21 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
+
+# deploy files
+deploy.tar.gz
+.env
+
+# logs
+/logs
+*.log
 
 # typescript
 *.tsbuildinfo
@@ -49,5 +61,4 @@ Desktop.ini
 node_modules/
 
 # 环境变量文件（如果有的话）
-.env
 *.env 

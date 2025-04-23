@@ -42,19 +42,22 @@ const connectWithRetry = async (retryCount = 0) => {
   const options = {
     useNewUrlParser: true,
     useUnifiedTopology: true,
-    serverSelectionTimeoutMS: 30000, // 增加到30秒
-    socketTimeoutMS: 45000,
+    serverSelectionTimeoutMS: 60000, // 增加到60秒
+    socketTimeoutMS: 75000,         // 增加到75秒
     retryWrites: true,
     w: 'majority',
-    connectTimeoutMS: 30000,
+    connectTimeoutMS: 60000,        // 增加到60秒
+    family: 4                        // 强制使用IPv4
   };
 
   try {
     console.log(`尝试连接MongoDB Atlas... (第${retryCount + 1}次尝试)`);
+    console.log(`连接URI: ${MONGODB_URI.replace(/:[^:]*@/, ':****@')}`); // 隐藏密码
     await mongoose.connect(MONGODB_URI, options);
     console.log('MongoDB Atlas连接成功');
   } catch (err) {
     console.error('MongoDB Atlas连接失败:', err.message);
+    console.error('详细错误:', JSON.stringify(err, null, 2));
     
     if (retryCount < maxRetries) {
       const nextRetryDelay = Math.min(1000 * Math.pow(2, retryCount), 10000);

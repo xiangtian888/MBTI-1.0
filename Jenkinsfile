@@ -44,17 +44,15 @@ pipeline {
                     node -v || echo "Node.js未安装"
                     npm -v || echo "npm未安装"
                     
-                    # 使用系统的Node.js，如果版本太低，给出警告
-                    NODE_CURRENT=$(node -v 2>/dev/null | cut -d "v" -f2 || echo "0")
-                    NODE_REQUIRED="${NODE_VERSION}"
+                    # 安装Node.js 16.x
+                    echo "安装Node.js 16.x..."
+                    curl -fsSL https://deb.nodesource.com/setup_16.x | sudo -E bash - || echo "添加Node.js源失败，尝试继续..."
+                    sudo apt-get install -y nodejs || echo "安装Node.js失败，尝试继续..."
                     
-                    # 比较版本
-                    if [ "$(echo "$NODE_CURRENT" | cut -d. -f1)" -lt "$(echo "$NODE_REQUIRED" | cut -d. -f1)" ]; then
-                        echo "警告: 当前Node.js版本 v$NODE_CURRENT 低于所需版本 v$NODE_REQUIRED"
-                        echo "构建可能会失败，请在Jenkins服务器上安装Node.js ${NODE_VERSION}或更高版本"
-                    else
-                        echo "当前Node.js版本 v$NODE_CURRENT 满足要求"
-                    fi
+                    # 显示安装后的版本
+                    echo "安装后的Node.js版本:"
+                    node -v
+                    npm -v
                     
                     # 设置npm配置
                     echo "配置npm..."
