@@ -5,7 +5,8 @@ module.exports = {
     env: {
       NODE_ENV: 'production',
       PORT: 3000,
-      MONGODB_URI: 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
+      MONGODB_URI: 'mongodb+srv://ylwhshuju:xiangtian999@cluster0.fsaypjw.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0',
+      NODE_OPTIONS: '--max_old_space_size=2048 --openssl-legacy-provider'
     },
     instances: 1,
     exec_mode: 'fork',
@@ -17,6 +18,7 @@ module.exports = {
     merge_logs: true,
     restart_delay: 3000,
     wait_ready: true,
-    kill_timeout: 10000
+    kill_timeout: 10000,
+    node_args: '--openssl-legacy-provider'
   }]
-}; 
+};
