@@ -1,6 +1,7 @@
 {
   "name": "mbti-server",
   "version": "1.0.0",
+  "private": true,
   "description": "MBTI测试系统后端服务",
   "main": "index.js",
   "scripts": {
@@ -9,8 +10,8 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "mongoose": "^8.13.2"
+    "express": "^4.17.3",
+    "mongoose": "^6.12.0"
   },
   "devDependencies": {
     "nodemon": "^2.0.22"
